@@ -1,0 +1,270 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity project_reti_logiche is
+port (
+	i_clk : in std_logic;
+	i_rst : in std_logic;
+	i_start : in std_logic;
+	i_w : in std_logic;
+
+	o_z0 : out std_logic_vector(7 downto 0);
+	o_z1 : out std_logic_vector(7 downto 0);
+	o_z2 : out std_logic_vector(7 downto 0);
+	o_z3 : out std_logic_vector(7 downto 0);
+	o_done : out std_logic;
+
+	o_mem_addr : out std_logic_vector(15 downto 0);
+	i_mem_data : in std_logic_vector(7 downto 0);
+	o_mem_we : out std_logic;
+	o_mem_en : out std_logic
+ );
+end project_reti_logiche;
+
+architecture Behavioral of project_reti_logiche is
+    type S is (S0a, S0b, S1, S2, S3, S4, S5, S5a, S5b, S6, S7);
+    signal curr : S;
+    signal exit_position : std_logic;
+    signal exit_en : std_logic;
+    signal z : std_logic_vector(1 downto 0);
+    signal done : std_logic;
+    signal z0, z1, z2, z3 : std_logic_vector(7 downto 0);
+    signal registry_en : std_logic;
+    signal addr_calc_en :   std_logic;
+    signal mem_addr :   std_logic_vector (15 downto 0);
+begin
+	
+	    
+	fsm : process(i_rst, i_start, i_clk) is
+	begin
+	
+	  if (i_clk'event and i_clk = '0') then
+		if (curr = S0a and i_rst = '0') then
+			curr <= S0a;
+		elsif (curr = S0a and i_rst = '1') then
+			curr <= S0b;
+		elsif (curr = S0b and i_rst = '1') then
+	       curr <= S0b;
+	    elsif (curr = S0b and i_rst = '0' and i_start = '0') then
+	       curr <= S1;
+	    elsif (curr = S0b and i_rst = '0' and i_start = '1') then
+	       curr <= S2;
+		elsif (curr = S1 and i_start = '0') then
+			curr <= S1;
+		elsif (curr = S1 and i_rst = '1') then
+			curr <= S0b;
+		elsif (curr = S1 and i_start = '1') then
+			curr <= S2;
+		elsif (curr = S2 and i_start = '1') then
+			curr <= S3;
+	    elsif (curr = S3 and i_start = '1') then
+	        curr <= S3;    
+	    elsif (curr = S3 and i_start = '0') then
+			curr <= S4; 
+		elsif (curr = S4) then
+			curr <= S5;
+		elsif (curr = S5) then
+			curr <= S5a;
+		elsif (curr = S5a) then
+			curr <= S5b;	
+		elsif (curr = S5b) then
+			curr <= S6;		
+		elsif (curr = S6) then
+			curr <= S7;
+		elsif (curr = S7 and i_start = '0' and i_rst = '0') then
+			curr <= S7;
+		elsif (curr = S7 and i_start = '1') then
+			curr <= S2;
+		elsif (curr = S7 and i_rst = '1') then
+			curr <= S0b;
+		end if;
+	  end if;
+	end process;
+	
+	fsm_lambda : process(curr) is
+	begin
+	                  o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              exit_en <= '0';
+		              registry_en <= '0';
+	                  addr_calc_en <= '0';
+		case curr is
+		when S0a =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              addr_calc_en <= '0';
+	   	when S0b =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              exit_en <= '1';
+                      addr_calc_en <= '0';
+		when S1 =>    o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              exit_en <= '1';
+		              addr_calc_en <= '0';		              
+		when S2 =>    o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              exit_en <= '1';
+		              addr_calc_en <= '0';
+		when S3 =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              addr_calc_en <= '1';		              
+		when S4 =>   o_mem_we <= '0';
+		              o_mem_en <= '1';
+		              done <= '0';
+		              o_done <= '0';
+		              addr_calc_en <= '0';
+		when S5 =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              registry_en <= '1';
+		              addr_calc_en <= '0';
+		when S5a =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              registry_en <= '0';
+		              addr_calc_en <= '0';
+		when S5b =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '1';
+		              o_done <= '0';
+		              registry_en <= '0';
+		              addr_calc_en <= '0';                            
+		when S6 =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '1';
+		              addr_calc_en <= '0';
+		when S7 =>   o_mem_we <= '0';
+		              o_mem_en <= '0';
+		              done <= '0';
+		              o_done <= '0';
+		              exit_en <= '1';
+		              addr_calc_en <= '0';             	                           	              
+		end case;
+	end process;	
+	
+	exit_calculator : process(i_w, exit_position, done, exit_en, i_clk, i_start, i_rst) is
+    	begin
+        	if done = '1' or i_rst = '1' then
+            		z <= (others => '0');
+            		exit_position <= '0';
+        	elsif i_clk'event and i_clk = '1' and i_start = '1' and exit_en = '1' then
+            		if(exit_position='0') then
+               		z(1)<= i_w;
+               		exit_position <= '1';
+            		else
+                		z(0)<= i_w;
+            		end if;
+        	end if;
+    	end process;
+    	
+    	mem_addr_calculator : process(i_clk, i_rst, done, i_w) is
+    	begin
+            if i_rst = '1' or done = '1' then
+                o_mem_addr <= (others => '0');
+                mem_addr <= (others => '0');
+            elsif (i_clk = '1' and i_clk'event) then
+                if(addr_calc_en = '1' and i_w = '0') then
+                     mem_addr <= mem_addr(14 downto 0) & '0'; 
+                     o_mem_addr <= mem_addr;                     
+                elsif(addr_calc_en = '1' and i_w = '1') then
+                    mem_addr <= mem_addr(14 downto 0) & '1'; 
+                    o_mem_addr <= mem_addr;
+                end if;
+            end if;
+        end process;
+    	
+    	output_registry_z0 : process(z, i_rst, i_clk, i_mem_data, registry_en) is
+    	begin
+    		if i_rst = '1' then
+    			z0 <= (others => '0');
+    		elsif i_clk = '0' and i_clk'event and z(0) = '0' and z(1) = '0' and registry_en = '1' then
+    			z0 <= i_mem_data;
+    		end if;
+    	end process;
+    	
+    	output_registry_z1 : process(z, i_rst, i_clk, i_mem_data, registry_en) is
+    	begin
+    		if i_rst = '1' then
+    			z1 <= (others => '0');
+    		elsif i_clk = '0' and i_clk'event and z(0) = '1' and z(1) = '0' and registry_en = '1' then
+    			z1 <= i_mem_data;
+    		end if;
+    	end process;
+    	
+    	output_registry_z2 : process(z, i_rst, i_clk, i_mem_data, registry_en) is
+    	begin
+    		if i_rst = '1' then
+    			z2 <= (others => '0');
+    		elsif i_clk = '0' and i_clk'event and z(0) = '0' and z(1) = '1' and registry_en = '1' then
+    			z2 <= i_mem_data;
+    		end if;
+    	end process;
+    	
+    	output_registry_z3 : process(z, i_rst, i_clk, i_mem_data, registry_en) is
+    	begin
+    		if i_rst = '1' then
+    			z3 <= (others => '0');
+    		elsif i_clk = '0' and i_clk'event and z(0) = '1' and z(1) = '1' and registry_en = '1' then
+    			z3 <= i_mem_data;
+    		end if;
+    	end process;
+        
+        exit_and_z0 : process (z0, done, i_clk) is
+        begin
+        if i_clk'event and i_clk = '0' then
+            if done = '1' then
+                o_z0 <= z0;
+            else 
+                o_z0 <= "00000000";
+            end if;
+        end if;
+        end process;
+        
+        exit_and_z1 : process (z1, done, i_clk) is
+        begin
+        if i_clk'event and i_clk = '0' then
+            if done = '1' then
+                o_z1 <= z1;
+            else 
+                o_z1 <= "00000000";
+            end if;
+        end if;
+        end process;
+        
+        exit_and_z2 : process (z2, done, i_clk) is
+        begin
+        if i_clk'event and i_clk = '0' then
+            if done = '1' then
+                o_z2 <= z2;
+            else 
+                o_z2 <= "00000000";
+            end if;
+        end if;
+        end process;
+        
+        exit_and_z3 : process (z3, done, i_clk) is
+        begin
+        if i_clk'event and i_clk = '0' then
+            if done = '1' then
+                o_z3 <= z3;
+            else 
+                o_z3 <= "00000000";
+            end if;
+        end if;
+        end process;
+        
+end Behavioral;
